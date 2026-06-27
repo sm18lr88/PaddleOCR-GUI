@@ -1,0 +1,121 @@
+[project]
+name = "paddlepdf"
+version = "0.1.0"
+description = "Desktop and CLI batch PDF conversion with server-backed PaddleOCR-VL-1.6"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "pydantic>=2.12,<3",
+    "pyside6>=6.11,<7",
+    "rich>=15,<16",
+    "typing-extensions>=4.15,<5",
+    "typer>=0.26,<0.27",
+]
+
+[project.optional-dependencies]
+ocr = [
+    "paddleocr[doc-parser]==3.7.0",
+]
+gpu = [
+    "nvidia-cublas-cu12==12.9.0.13",
+    "nvidia-cuda-nvrtc-cu12==12.9.41",
+    "nvidia-cuda-runtime-cu12==12.9.37",
+    "nvidia-cudnn-cu12==9.9.0.52",
+    "paddlepaddle-gpu==3.3.0",
+]
+cpu = [
+    "paddlepaddle==3.3.0",
+]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+
+[tool.uv.sources]
+paddlepaddle-gpu = [
+    { index = "paddle-cu129", extra = "gpu" },
+]
+
+[[tool.uv.index]]
+name = "paddle-cu129"
+url = "https://www.paddlepaddle.org.cn/packages/stable/cu129/"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.34",
+    "pytest>=9",
+    "ruff>=0.14",
+]
+
+[project.scripts]
+paddlepdf = "paddlepdf.cli:main"
+paddlepdf-gui = "paddlepdf.gui_app:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+pythonVersion = "3.11"
+pythonPlatform = "All"
+include = ["src", "tests"]
+exclude = ["**/__pycache__", "**/.venv", "**/build", "**/dist"]
+stubPath = "typings"
+reportUnusedCallResult = "none"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportUnusedVariable = "error"
+reportMissingParameterType = "error"
+reportPrivateUsage = "error"
+reportUnannotatedClassAttribute = "none"
+reportUnknownMemberType = "none"
+reportMissingModuleSource = "none"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",
+    "D",
+    "D203",
+    "D213",
+    "FBT001",
+    "FBT002",
+    "FIX002",
+    "ISC001",
+    "TC003",
+    "TD002",
+    "TD003",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"src/paddlepdf/cli.py" = ["PLR0913"]
+"src/paddlepdf/gui.py" = ["PLR0915"]
+"src/paddlepdf/ocr_service.py" = ["BLE001", "PLC0415"]
+"src/paddlepdf/paddle_runtime.py" = ["PLC0415"]
+"tests/**/*.py" = ["ARG", "D", "PLR2004", "S101", "SLF001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Argument", "typer.Option"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+filterwarnings = ["error"]
