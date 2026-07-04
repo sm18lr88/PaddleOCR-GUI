@@ -91,6 +91,45 @@ def test_agent_json_when_dry_run(tmp_path: Path) -> None:
     assert not (tmp_path / "out").exists()
 
 
+def test_agent_json_when_image_dry_run(tmp_path: Path) -> None:
+    runner = CliRunner()
+    input_image = tmp_path / "scan.png"
+    input_image.write_bytes(b"not-a-real-image")
+
+    result = runner.invoke(
+        app,
+        [
+            "convert",
+            str(input_image),
+            "--out",
+            str(tmp_path / "out"),
+            "--dry-run",
+            "--agent",
+        ],
+    )
+
+    report = AgentRunReport.model_validate_json(result.output)
+    assert result.exit_code == 0
+    assert report.status == RunStatus.SUCCESS
+    assert report.input_files == (input_image,)
+
+
+def test_agent_json_rejects_unsupported_input_file(tmp_path: Path) -> None:
+    runner = CliRunner()
+    input_text = tmp_path / "notes.txt"
+    input_text.write_text("not a document", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        ["convert", str(input_text), "--out", str(tmp_path / "out"), "--agent"],
+    )
+
+    report = AgentRunReport.model_validate_json(result.output)
+    assert result.exit_code == 1
+    assert report.status == RunStatus.FAILED
+    assert ".png" in report.errors[0]
+
+
 def test_agent_json_when_vl_server_missing(tmp_path: Path) -> None:
     runner = CliRunner()
     input_pdf = tmp_path / "paper.pdf"
