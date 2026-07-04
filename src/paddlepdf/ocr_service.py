@@ -28,7 +28,11 @@ from paddlepdf.output_files import (
     save_vl_result,
 )
 from paddlepdf.paddle_runtime import close_vl_pipeline, create_vl_pipeline
-from paddlepdf.planning import artifact_formats, plan_documents
+from paddlepdf.planning import (
+    SUPPORTED_INPUT_SUFFIXES,
+    artifact_formats,
+    plan_documents,
+)
 from paddlepdf.third_party_output import capture_third_party_output, diagnostic_lines
 
 if TYPE_CHECKING:
@@ -65,7 +69,7 @@ class PaddleDocumentConverter:
     ) -> DocumentReport:
         started_at = time.perf_counter()
         try:
-            _validate_input_pdf(document.input_file)
+            _validate_input_file(document.input_file)
             if options.dry_run:
                 _emit_progress(
                     progress, index, total, document.input_file, "Dry run complete"
@@ -98,7 +102,6 @@ class PaddleDocumentConverter:
             PaddleVlServerUnavailableError,
             OSError,
             RuntimeError,
-            Exception,
         ) as exc:
             _emit_progress(progress, index, total, document.input_file, "Failed")
             return DocumentReport(
@@ -126,13 +129,16 @@ class PaddleDocumentConverter:
             raise PaddleDiagnosticOutputError(lines=lines)
 
 
-def _validate_input_pdf(input_file: Path) -> None:
+def _validate_input_file(input_file: Path) -> None:
     if not input_file.exists():
         raise ConversionPathError(path=input_file, reason="file does not exist")
     if not input_file.is_file():
         raise ConversionPathError(path=input_file, reason="not a file")
-    if input_file.suffix.lower() != ".pdf":
-        raise ConversionPathError(path=input_file, reason="expected a .pdf file")
+    if input_file.suffix.lower() not in SUPPORTED_INPUT_SUFFIXES:
+        extensions = ", ".join(sorted(SUPPORTED_INPUT_SUFFIXES))
+        raise ConversionPathError(
+            path=input_file, reason=f"expected one of: {extensions}"
+        )
 
 
 def _dry_run_report(

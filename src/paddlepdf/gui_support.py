@@ -17,6 +17,7 @@ from paddlepdf.models import (
     VlBackend,
 )
 from paddlepdf.ocr_service import PaddleDocumentConverter
+from paddlepdf.planning import SUPPORTED_INPUT_SUFFIXES
 
 if TYPE_CHECKING:
     from paddlepdf.i18n import UiLanguage
@@ -96,12 +97,13 @@ def set_running_controls(
     open_folder_button.setEnabled((not running) and latest_output_dir.exists())
 
 
-def select_pdf_files(parent: QWidget, title: str) -> list[Path]:
+def select_input_files(parent: QWidget, title: str) -> list[Path]:
+    suffixes = " ".join(f"*{suffix}" for suffix in sorted(SUPPORTED_INPUT_SUFFIXES))
     files, _ = QFileDialog.getOpenFileNames(
         parent,
         title,
         str(Path.home()),
-        "PDF files (*.pdf)",
+        f"Documents and images ({suffixes})",
     )
     return [Path(file).resolve() for file in files]
 

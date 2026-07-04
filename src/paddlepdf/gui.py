@@ -25,8 +25,8 @@ from paddlepdf.gui_support import (
     blank_to_none,
     combo_box,
     open_output_folder,
+    select_input_files,
     select_output_folder,
-    select_pdf_files,
     set_running_controls,
 )
 from paddlepdf.i18n import RTL_LANGUAGES, UiLanguage, detect_ui_language, text
@@ -125,7 +125,7 @@ class PaddlePdfWindow(QMainWindow):
 
     @Slot()
     def _select_files(self) -> None:
-        files = select_pdf_files(self, text(self._language, "select_pdf_files"))
+        files = select_input_files(self, text(self._language, "select_pdf_files"))
         if not files:
             return
         self._input_files = files

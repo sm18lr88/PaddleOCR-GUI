@@ -6,6 +6,9 @@ from pathlib import Path
 from paddlepdf.models import ArtifactFormat, OutputFormat, PlannedDocument
 
 SAFE_PART_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
+SUPPORTED_INPUT_SUFFIXES = frozenset(
+    {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+)
 
 
 def artifact_formats(output_format: OutputFormat) -> tuple[ArtifactFormat, ...]:
