@@ -6,6 +6,10 @@ from typing import TYPE_CHECKING
 from paddlepdf.models import ArtifactFormat, ConversionOptions, PlannedDocument
 from paddlepdf.planning import artifact_formats, expected_text_file
 
+ASSET_SUFFIXES = frozenset(
+    {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff", ".svg"}
+)
+
 if TYPE_CHECKING:
     from paddleocr import PaddleOCRVLResult
 
@@ -29,7 +33,7 @@ def collect_output_files(
     created = existing_files(document.output_dir) - before
     requested = artifact_formats(options.output_format)
     text_files = materialize_text_outputs(document, created, requested)
-    kept = [path for path in created if matches_requested_format(path, requested)]
+    kept = [path for path in created if should_report_output_file(path, requested)]
     return tuple(sorted((*kept, *text_files), key=lambda path: path.as_posix()))
 
 
@@ -58,7 +62,7 @@ def materialize_text_outputs(
     return (text_file,)
 
 
-def matches_requested_format(
+def should_report_output_file(
     path: Path,
     requested: tuple[ArtifactFormat, ...],
 ) -> bool:
@@ -67,4 +71,5 @@ def matches_requested_format(
         (suffix == ".json" and ArtifactFormat.JSON in requested)
         or (suffix == ".md" and ArtifactFormat.MARKDOWN in requested)
         or (suffix == ".txt" and ArtifactFormat.TEXT in requested)
+        or suffix in ASSET_SUFFIXES
     )
