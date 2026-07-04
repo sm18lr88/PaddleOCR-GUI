@@ -1,6 +1,6 @@
 # PaddleOCR-GUI
 
-PaddleOCR-GUI is a Python desktop app and CLI for converting one or more PDFs with the SOTA PaddleOCR-VL-1.6 document parsing pipeline.
+PaddleOCR-GUI is a Python desktop app and CLI for converting PDFs and common document images with the SOTA PaddleOCR-VL-1.6 document parsing pipeline.
 
 It uses `PaddleOCRVL(pipeline_version="v1.6")` with an optimized GenAI server backend (`vllm`, `sglang`, or `fastdeploy`). The slow native in-process VL backend is intentionally not exposed. Model weights are not included in this repo; PaddleOCR downloads and caches the official files on first use.
 
@@ -116,7 +116,7 @@ macOS/Linux:
 ./run_gui.sh
 ```
 
-The GUI lets users select PDFs, choose an output folder, choose Markdown/JSON/text/all, set the VL backend and server URL, set OCR knobs, watch progress, and open the output folder when conversion completes. Conversion runs in a worker thread so the window stays responsive. The interface auto-detects the OS language and can be switched manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
+The GUI lets users select PDFs or images, choose an output folder, choose Markdown/JSON/text/all, set the VL backend and server URL, set OCR knobs, watch progress, and open the output folder when conversion completes. Conversion runs in a worker thread so the window stays responsive. The interface auto-detects the OS language and can be switched manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
 
 ## Run the CLI
 
@@ -129,8 +129,11 @@ Useful options:
 ```bash
 uv run paddlepdf convert paper.pdf --out ./output --format all --vl-backend vllm --vl-server-url http://localhost:8118/v1
 uv run paddlepdf convert paper.pdf --out ./output --format text --plain-flow --vl-server-url http://localhost:8118/v1
+uv run paddlepdf convert scan.png --out ./output --format markdown --vl-server-url http://localhost:8118/v1
 uv run paddlepdf convert paper.pdf --out ./output --dry-run
 ```
+
+Supported inputs: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, and `.webp`.
 
 Outputs are written into predictable per-document folders under the selected output folder. PDF names are sanitized and duplicate stems become `name`, `name-2`, and so on.
 
@@ -148,6 +151,14 @@ Command:
 uv run paddlepdf convert input1.pdf input2.pdf --out ./output --format markdown --vl-server-url http://localhost:8118/v1 --agent
 ```
 
+Windows executable bundle command:
+
+```powershell
+.\PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --vl-server-url http://127.0.0.1:8118/v1 --agent
+```
+
+Any distribution of this project, including future Docker images, must keep a CLI entry point with the same `convert ... --agent` JSON contract so coding agents can process PDFs and images without GUI automation.
+
 Dry-run command that does not load PaddleOCR:
 
 ```bash
@@ -164,9 +175,23 @@ uv run paddlepdf convert input.pdf --out ./output --format all --dry-run --agent
 - `elapsed_seconds`
 - per-document status details
 
+`output_files` includes requested Markdown/JSON/text artifacts and any generated sidecar assets such as extracted figures or page images. Agents should keep those paths with the Markdown because PaddleOCR-VL may reference sidecar image files from the generated content.
+
 Exit code is `0` for success and nonzero for failed or partial runs.
 
 ## Package a zip
+
+For a Windows executable bundle similar to apps that ship their DLLs beside the `.exe`, run:
+
+```powershell
+.\package_windows.ps1
+```
+
+This builds `dist\PaddleOCR-GUI\PaddleOCR-GUI.exe` and `dist\PaddleOCR-GUI\PaddleOCR-GUI-CLI.exe` with PyInstaller's one-folder layout and writes `dist\PaddleOCR-GUI-windows-x64.zip`. The folder is intentionally distributed as a directory-style app bundle so the executables can load the collected Qt, PaddlePaddle, CUDA, and NVIDIA DLL/resource files next to them.
+
+The Windows executable is still a client. Before converting PDFs on another machine, start a PaddleOCR-VL GenAI server and set `PADDLEOCR_VL_SERVER_URL` or fill the GUI server URL field.
+
+Source-only zip commands:
 
 Windows PowerShell:
 
