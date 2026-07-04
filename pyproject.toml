@@ -5,10 +5,10 @@ description = "Desktop and CLI batch PDF conversion with server-backed PaddleOCR
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
+    "mcp>=1.12,<2",
     "pydantic>=2.12,<3",
     "pyside6>=6.11,<7",
     "rich>=15,<16",
-    "typing-extensions>=4.15,<5",
     "typer>=0.26,<0.27",
 ]
 
@@ -51,6 +51,7 @@ dev = [
 [project.scripts]
 paddlepdf = "paddlepdf.cli:main"
 paddlepdf-gui = "paddlepdf.gui_app:main"
+paddlepdf-mcp = "paddlepdf.mcp_server:main"
 
 [build-system]
 requires = ["uv_build>=0.11.6,<0.12.0"]
@@ -58,7 +59,7 @@ build-backend = "uv_build"
 
 [tool.basedpyright]
 typeCheckingMode = "all"
-pythonVersion = "3.11"
+pythonVersion = "3.13"
 pythonPlatform = "All"
 include = ["src", "tests"]
 exclude = ["**/__pycache__", "**/.venv", "**/build", "**/dist"]
@@ -73,7 +74,7 @@ reportUnknownMemberType = "none"
 reportMissingModuleSource = "none"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 88
 src = ["src", "tests"]
 
@@ -98,6 +99,7 @@ unfixable = []
 [tool.ruff.lint.per-file-ignores]
 "src/paddlepdf/cli.py" = ["PLR0913"]
 "src/paddlepdf/gui.py" = ["PLR0915"]
+"src/paddlepdf/mcp_server.py" = ["PLR0913"]
 "src/paddlepdf/ocr_service.py" = ["BLE001", "PLC0415"]
 "src/paddlepdf/paddle_runtime.py" = ["PLC0415"]
 "tests/**/*.py" = ["ARG", "D", "PLR2004", "S101", "SLF001"]
