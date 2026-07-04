@@ -145,6 +145,22 @@ Setup:
 uv sync --dev --extra ocr --extra gpu
 ```
 
+MCP server command:
+
+```bash
+uv run paddlepdf-mcp
+```
+
+The MCP server exposes `convert_documents` with these top-level arguments:
+
+- `input_files`: PDF/image paths
+- `output_dir`: output folder
+- `output_format`: `markdown`, `json`, `text`, or `all`
+- `vl_server_url`: PaddleOCR-VL GenAI `/v1` endpoint, unless using `dry_run`
+- `dry_run`: validate paths and planned outputs without OCR
+
+The MCP tool returns the same structured report shape as CLI `--agent` output.
+
 Command:
 
 ```bash
