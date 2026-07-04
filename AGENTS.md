@@ -2,6 +2,14 @@
 
 Agents must use the CLI surface, not the GUI, for automated document processing.
 
+Preferred local MCP server:
+
+```bash
+uv --directory D:\Apps\Document_Processing\paddlepdf run paddlepdf-mcp
+```
+
+Use the `convert_documents` MCP tool with top-level `input_files`, `output_dir`, `output_format`, optional OCR/server settings, and `dry_run` when validation should not contact PaddleOCR-VL.
+
 Windows bundle:
 
 ```powershell
