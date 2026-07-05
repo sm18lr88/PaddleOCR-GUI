@@ -1,6 +1,8 @@
 # PaddleOCR-GUI
 
-A GUI, MCP, and CLI-server for PaddleOCR. Codebase includes instructions for AI agents to set it up.
+Highly accurate conversion of PDFs to markdown. For use by humans, programs, or AI agents. 
+
+To set up, point your AI agent to this URL and it should find how to set it up for you.
 
 ![PaddleOCR-GUI dark workflow](docs/images/paddleocr-gui.png)
 
