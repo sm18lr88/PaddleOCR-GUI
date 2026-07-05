@@ -14,6 +14,15 @@ DIAGNOSTIC_MARKERS: Final = (
     "deprecated",
     "deprecation",
 )
+BENIGN_TENSOR_WARNING_PREFIX: Final = (
+    "To copy construct from a tensor, it is recommended to use "
+)
+BENIGN_TENSOR_WARNING_SUFFIX: Final = (
+    "sourceTensor.clone().detach(), rather than paddle.to_tensor(sourceTensor)."
+)
+BENIGN_DIAGNOSTIC_SNIPPETS: Final = (
+    BENIGN_TENSOR_WARNING_PREFIX + BENIGN_TENSOR_WARNING_SUFFIX,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,9 +65,17 @@ def diagnostic_lines(captured: CapturedStreams) -> tuple[str, ...]:
         *captured.stdout.getvalue().splitlines(),
         *captured.stderr.getvalue().splitlines(),
     )
-    return tuple(line for line in lines if _has_diagnostic_marker(line))
+    return tuple(
+        line
+        for line in lines
+        if _has_diagnostic_marker(line) and not _is_benign_diagnostic(line)
+    )
 
 
 def _has_diagnostic_marker(line: str) -> bool:
     normalized = line.casefold()
     return any(marker in normalized for marker in DIAGNOSTIC_MARKERS)
+
+
+def _is_benign_diagnostic(line: str) -> bool:
+    return any(snippet in line for snippet in BENIGN_DIAGNOSTIC_SNIPPETS)

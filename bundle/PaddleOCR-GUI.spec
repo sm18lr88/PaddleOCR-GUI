@@ -2,7 +2,12 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+    copy_metadata,
+)
 
 
 project_root = Path(SPECPATH).parent
@@ -24,6 +29,7 @@ hiddenimports = [
     "openai",
     "httpx",
 ]
+hiddenimports += collect_submodules("paddlex.inference.models.doc_vlm.processors")
 excludes = [
     "future.backports.email.feedparser",
     "future.backports.email.utils",
@@ -52,6 +58,40 @@ for package in (
     package_binaries = collect_dynamic_libs(package)
     datas += package_datas
     binaries += package_binaries
+
+for distribution in (
+    "beautifulsoup4",
+    "einops",
+    "ftfy",
+    "httpx",
+    "huggingface-hub",
+    "imagesize",
+    "Jinja2",
+    "latex2mathml",
+    "lxml",
+    "modelscope",
+    "opencv-contrib-python",
+    "openai",
+    "openpyxl",
+    "paddleocr",
+    "paddlepaddle-gpu",
+    "paddlepdf",
+    "paddlex",
+    "premailer",
+    "pyclipper",
+    "pydantic-settings",
+    "pypdfium2",
+    "python-bidi",
+    "regex",
+    "safetensors",
+    "scikit-learn",
+    "scipy",
+    "sentencepiece",
+    "shapely",
+    "tiktoken",
+    "tokenizers",
+):
+    datas += copy_metadata(distribution)
 
 gui_analysis = Analysis(
     [str(entry_script)],

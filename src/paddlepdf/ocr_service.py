@@ -27,7 +27,11 @@ from paddlepdf.output_files import (
     existing_files,
     save_vl_result,
 )
-from paddlepdf.paddle_runtime import close_vl_pipeline, create_vl_pipeline
+from paddlepdf.paddle_runtime import (
+    close_vl_pipeline,
+    create_vl_pipeline,
+    device_warnings,
+)
 from paddlepdf.planning import (
     SUPPORTED_INPUT_SUFFIXES,
     artifact_formats,
@@ -93,6 +97,7 @@ class PaddleDocumentConverter:
                 input_file=document.input_file,
                 output_dir=document.output_dir,
                 output_files=output_files,
+                warnings=device_warnings(options),
                 elapsed_seconds=time.perf_counter() - started_at,
             )
         except (
@@ -108,7 +113,7 @@ class PaddleDocumentConverter:
                 status=DocumentStatus.FAILED,
                 input_file=document.input_file,
                 output_dir=document.output_dir,
-                errors=(str(exc),),
+                errors=(_exception_message(exc),),
                 elapsed_seconds=time.perf_counter() - started_at,
             )
 
@@ -139,6 +144,17 @@ def _validate_input_file(input_file: Path) -> None:
         raise ConversionPathError(
             path=input_file, reason=f"expected one of: {extensions}"
         )
+
+
+def _exception_message(exc: BaseException) -> str:
+    message = str(exc)
+    cause = exc.__cause__
+    if cause is None:
+        return message
+    cause_message = str(cause)
+    if cause_message == "" or cause_message in message:
+        return message
+    return f"{message} Cause: {cause_message}"
 
 
 def _dry_run_report(

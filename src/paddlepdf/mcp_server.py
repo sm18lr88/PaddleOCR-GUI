@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
@@ -14,6 +13,7 @@ from paddlepdf.models import (
     VlBackend,
 )
 from paddlepdf.ocr_service import PaddleDocumentConverter
+from paddlepdf.user_paths import user_path, user_paths
 
 
 class McpConversionRequest(BaseModel):
@@ -61,7 +61,7 @@ mcp = FastMCP(
     log_level="ERROR",
     instructions=(
         "Convert PDFs and common document images with PaddleOCR-VL. "
-        "Use dry_run=true to validate paths without contacting the VL server."
+        "Use dry_run=true to validate paths without running OCR."
     ),
 )
 
@@ -99,11 +99,11 @@ def convert_documents(
     ] = DeviceChoice.GPU,
     vl_backend: Annotated[
         VlBackend,
-        Field(description="Optimized PaddleOCR-VL GenAI server backend."),
+        Field(description="GenAI backend used only with an optional VL server URL."),
     ] = VlBackend.VLLM,
     vl_server_url: Annotated[
         str | None,
-        Field(description="PaddleOCR-VL GenAI server /v1 endpoint."),
+        Field(description="Optional PaddleOCR-VL GenAI server /v1 endpoint override."),
     ] = None,
     orientation_correction: Annotated[
         bool,
@@ -147,8 +147,8 @@ def convert_documents(
 
 def convert_mcp_request(request: McpConversionRequest) -> AgentRunReport:
     conversion_request = ConversionRequest(
-        input_files=tuple(Path(path).resolve() for path in request.input_files),
-        output_dir=Path(request.output_dir).resolve(),
+        input_files=user_paths(request.input_files),
+        output_dir=user_path(request.output_dir),
         options=ConversionOptions(
             output_format=request.output_format,
             profile=request.profile,
