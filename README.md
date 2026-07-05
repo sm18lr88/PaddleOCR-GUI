@@ -1,8 +1,6 @@
 # PaddleOCR-GUI
 
-PaddleOCR-GUI is a Python desktop app and CLI for converting PDFs and common document images with the SOTA PaddleOCR-VL-1.6 document parsing pipeline.
-
-It uses `PaddleOCRVL(pipeline_version="v1.6")` natively by default. On Windows, the default setup installs the CUDA 12.9 PaddlePaddle GPU runtime and the app requests `gpu:0` first; if CUDA is not available, reports include a warning that CPU is being used. Model weights are not included in this repo; PaddleOCR downloads and caches the official files on first use.
+A GUI, MCP, and CLI-server for PaddleOCR. Codebase includes instructions for AI agents to set it up.
 
 ![PaddleOCR-GUI dark workflow](docs/images/paddleocr-gui.png)
 
