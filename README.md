@@ -2,7 +2,9 @@
 
 PaddleOCR-GUI is a Python desktop app and CLI for converting PDFs and common document images with the SOTA PaddleOCR-VL-1.6 document parsing pipeline.
 
-It uses `PaddleOCRVL(pipeline_version="v1.6")` with an optimized GenAI server backend (`vllm`, `sglang`, or `fastdeploy`). The slow native in-process VL backend is intentionally not exposed. Model weights are not included in this repo; PaddleOCR downloads and caches the official files on first use.
+It uses `PaddleOCRVL(pipeline_version="v1.6")` natively by default. On Windows, the default setup installs the CUDA 12.9 PaddlePaddle GPU runtime and the app requests `gpu:0` first; if CUDA is not available, reports include a warning that CPU is being used. Model weights are not included in this repo; PaddleOCR downloads and caches the official files on first use.
+
+![PaddleOCR-GUI dark workflow](docs/images/paddleocr-gui.png)
 
 ## Install UV
 
@@ -39,9 +41,13 @@ chmod +x setup.sh run_gui.sh
 ./setup.sh
 ```
 
-## Start an optimized PaddleOCR-VL server
+## Native GPU-first runtime
 
-PaddleOCR-GUI requires an optimized PaddleOCR-VL GenAI server. Native local VL inference was measured at several minutes for only a few pages, so the app fails fast if no server URL is configured.
+PaddleOCR-GUI runs PaddleOCR-VL in-process by default. The GUI, CLI, and MCP all use the same converter, so a normal conversion needs no Docker container and no GenAI server URL.
+
+The default device is `gpu`. When PaddlePaddle CUDA is available, the app passes `gpu:0` to PaddleOCR-VL. When CUDA is unavailable or CPU is selected, the JSON report and GUI log include a warning such as `GPU was requested but PaddlePaddle CUDA is unavailable; using CPU.`
+
+Use an external PaddleOCR-VL GenAI server only when you intentionally want a separate local or remote server. For CLI/MCP, pass `--vl-server-url` or `vl_server_url`, or set `PADDLEOCR_VL_SERVER_URL`.
 
 Official PaddleOCR server commands use one of these backends:
 
@@ -51,19 +57,19 @@ paddleocr genai_server --model_name PaddleOCR-VL-1.6-0.9B --backend sglang --por
 paddleocr genai_server --model_name PaddleOCR-VL-1.6-0.9B --backend fastdeploy --port 8118
 ```
 
-Then configure the app with either:
+For CLI/MCP, configure the client with either:
 
 ```bash
 export PADDLEOCR_VL_SERVER_URL=http://localhost:8118/v1
 ```
 
-or pass `--vl-server-url http://localhost:8118/v1` to the CLI. On Windows PowerShell:
+or pass `--vl-server-url http://localhost:8118/v1` to the CLI/MCP call. On Windows PowerShell:
 
 ```powershell
 $env:PADDLEOCR_VL_SERVER_URL = "http://localhost:8118/v1"
 ```
 
-The server machine should be configured according to PaddleOCR's hardware/backend guide. On Windows client machines, running the GenAI server in Linux, WSL2, Docker, or a remote GPU host is recommended.
+The server machine should be configured according to PaddleOCR's hardware/backend guide.
 
 Validated Docker GPU server path:
 
@@ -75,9 +81,9 @@ docker run --rm --name paddleocr-vl-server --gpus all --shm-size 8g -p 8118:8118
 
 Use `http://127.0.0.1:8118/v1` from the client after the container health endpoint is ready.
 
-## Optional CPU-only client setup
+## Optional CPU-only setup
 
-Use this only when the client machine does not need local CUDA libraries. SOTA VL inference still happens on the configured GenAI server.
+Use this only when the machine should not install CUDA PaddlePaddle libraries. CPU conversion works, but GPU is preferred for practical local OCR throughput.
 
 ```bash
 uv sync --dev --extra ocr --extra cpu
@@ -116,21 +122,22 @@ macOS/Linux:
 ./run_gui.sh
 ```
 
-The GUI lets users select PDFs or images, choose an output folder, choose Markdown/JSON/text/all, set the VL backend and server URL, set OCR knobs, watch progress, and open the output folder when conversion completes. Conversion runs in a worker thread so the window stays responsive. The interface auto-detects the OS language and can be switched manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
+The GUI lets users select PDFs or images, choose an output folder, choose Markdown/JSON/text/all, set the device and OCR knobs, watch progress, and open the output folder when conversion completes. Conversion runs in a worker thread so the window stays responsive. The interface auto-detects the OS language and can be switched manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
 
 ## Run the CLI
 
 ```bash
-uv run paddlepdf convert input1.pdf input2.pdf --out ./output --format markdown --vl-server-url http://localhost:8118/v1
+uv run paddlepdf convert input1.pdf input2.pdf --out ./output --format markdown
 ```
 
 Useful options:
 
 ```bash
-uv run paddlepdf convert paper.pdf --out ./output --format all --vl-backend vllm --vl-server-url http://localhost:8118/v1
-uv run paddlepdf convert paper.pdf --out ./output --format text --plain-flow --vl-server-url http://localhost:8118/v1
-uv run paddlepdf convert scan.png --out ./output --format markdown --vl-server-url http://localhost:8118/v1
+uv run paddlepdf convert paper.pdf --out ./output --format all --device gpu
+uv run paddlepdf convert paper.pdf --out ./output --format text --plain-flow
+uv run paddlepdf convert scan.png --out ./output --format markdown
 uv run paddlepdf convert paper.pdf --out ./output --dry-run
+uv run paddlepdf convert paper.pdf --out ./output --format markdown --vl-server-url http://localhost:8118/v1
 ```
 
 Supported inputs: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, and `.webp`.
@@ -156,7 +163,7 @@ The MCP server exposes `convert_documents` with these top-level arguments:
 - `input_files`: PDF/image paths
 - `output_dir`: output folder
 - `output_format`: `markdown`, `json`, `text`, or `all`
-- `vl_server_url`: PaddleOCR-VL GenAI `/v1` endpoint, unless using `dry_run`
+- `vl_server_url`: optional PaddleOCR-VL GenAI `/v1` endpoint override
 - `dry_run`: validate paths and planned outputs without OCR
 
 The MCP tool returns the same structured report shape as CLI `--agent` output.
@@ -164,13 +171,13 @@ The MCP tool returns the same structured report shape as CLI `--agent` output.
 Command:
 
 ```bash
-uv run paddlepdf convert input1.pdf input2.pdf --out ./output --format markdown --vl-server-url http://localhost:8118/v1 --agent
+uv run paddlepdf convert input1.pdf input2.pdf --out ./output --format markdown --agent
 ```
 
 Windows executable bundle command:
 
 ```powershell
-.\PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --vl-server-url http://127.0.0.1:8118/v1 --agent
+.\PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --agent
 ```
 
 Any distribution of this project, including future Docker images, must keep a CLI entry point with the same `convert ... --agent` JSON contract so coding agents can process PDFs and images without GUI automation.
@@ -205,7 +212,7 @@ For a Windows executable bundle similar to apps that ship their DLLs beside the 
 
 This builds `dist\PaddleOCR-GUI\PaddleOCR-GUI.exe` and `dist\PaddleOCR-GUI\PaddleOCR-GUI-CLI.exe` with PyInstaller's one-folder layout and writes `dist\PaddleOCR-GUI-windows-x64.zip`. The folder is intentionally distributed as a directory-style app bundle so the executables can load the collected Qt, PaddlePaddle, CUDA, and NVIDIA DLL/resource files next to them.
 
-The Windows executable is still a client. Before converting PDFs on another machine, start a PaddleOCR-VL GenAI server and set `PADDLEOCR_VL_SERVER_URL` or fill the GUI server URL field.
+The GUI executable runs native PaddleOCR-VL by default. The CLI executable remains the agent surface; pass `--vl-server-url` or set `PADDLEOCR_VL_SERVER_URL` only when intentionally using a separate PaddleOCR-VL GenAI server.
 
 Source-only zip commands:
 
@@ -225,11 +232,11 @@ Do not include `.venv`, model caches, or downloaded PaddleOCR weights in the zip
 
 ## Troubleshooting
 
-- First server conversion is slow because PaddleOCR downloads model files and initializes the GenAI backend.
+- First conversion is slow because PaddleOCR downloads model files and initializes PaddleOCR-VL.
 - PaddleOCR downloads official models from Hugging Face by default. PaddleOCR-GUI disables PaddleOCR's pre-download hoster health check to avoid false negatives; set `PADDLE_PDX_MODEL_SOURCE=BOS` only if Hugging Face is inaccessible on your network.
 - If `paddleocr is not installed`, run `uv sync --dev --extra ocr --extra gpu`.
 - If PaddlePaddle import fails, install exactly one runtime package: CPU `paddlepaddle` or GPU `paddlepaddle-gpu`.
-- If the app reports `PaddleOCR-VL server unavailable`, start the GenAI server and set `PADDLEOCR_VL_SERVER_URL` or pass `--vl-server-url`.
-- If GPU runs out of memory, adjust the GenAI server backend configuration or use a larger remote GPU host.
+- If the report warns that GPU is unavailable, confirm `paddlepaddle-gpu` is installed, the NVIDIA driver is working, and `paddle.device.cuda.device_count()` is greater than zero.
+- If `PaddleOCR-VL server unavailable` appears, you explicitly configured `--vl-server-url` or `PADDLEOCR_VL_SERVER_URL`; confirm the GenAI server is healthy or remove the override to use native OCR.
+- If GPU runs out of memory, use a smaller workload, switch to a larger GPU machine, or intentionally target a remote GenAI server.
 - If macOS PaddlePaddle wheels are unavailable for your machine, use the official PaddleOCR-VL Docker or hardware-specific guide.
-- Native local PaddleOCR-VL is not exposed because it was measured as too slow for a smooth GUI and currently emits upstream warnings under strict warning policy.

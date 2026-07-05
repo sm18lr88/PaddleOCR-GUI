@@ -5,7 +5,17 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QCheckBox, QComboBox, QFileDialog, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGroupBox,
+    QLayout,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from paddlepdf.models import (
     AgentRunReport,
@@ -59,6 +69,22 @@ def combo_box(
     return combo
 
 
+def quality_profile_box(
+    orientation_box: QCheckBox,
+    unwarp_box: QCheckBox,
+    layout_box: QCheckBox,
+) -> QComboBox:
+    profile_box = combo_box(QualityProfile, QualityProfile.BALANCED)
+
+    def update_profile(value: str) -> None:
+        apply_profile_to_checks(
+            QualityProfile(value), orientation_box, unwarp_box, layout_box
+        )
+
+    profile_box.currentTextChanged.connect(update_profile)
+    return profile_box
+
+
 def apply_profile_to_checks(
     profile: QualityProfile,
     orientation_box: QCheckBox,
@@ -76,13 +102,6 @@ def apply_profile_to_checks(
             layout_box.setChecked(True)
 
 
-def blank_to_none(value: str) -> str | None:
-    cleaned = value.strip()
-    if cleaned == "":
-        return None
-    return cleaned
-
-
 def open_output_folder(output_dir: Path) -> None:
     QDesktopServices.openUrl(QUrl.fromLocalFile(str(output_dir)))
 
@@ -95,6 +114,27 @@ def set_running_controls(
 ) -> None:
     convert_button.setEnabled(not running)
     open_folder_button.setEnabled((not running) and latest_output_dir.exists())
+
+
+def append_report_to_log(log: QPlainTextEdit, report: AgentRunReport) -> None:
+    for document in report.documents:
+        log.appendPlainText(f"{document.input_file.name}: {document.status.value}")
+        for warning in document.warnings:
+            log.appendPlainText(f"  {warning}")
+        for error in document.errors:
+            log.appendPlainText(f"  {error}")
+
+
+def section(title: str, layout: QLayout) -> QGroupBox:
+    group = QGroupBox(title)
+    group.setLayout(layout)
+    return group
+
+
+def widget_section(title: str, widget: QWidget) -> QGroupBox:
+    layout = QVBoxLayout()
+    layout.addWidget(widget)
+    return section(title, layout)
 
 
 def select_input_files(parent: QWidget, title: str) -> list[Path]:

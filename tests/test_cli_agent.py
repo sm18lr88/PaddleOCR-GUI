@@ -7,6 +7,23 @@ from typer.testing import CliRunner
 from paddlepdf.cli import app
 from paddlepdf.models import AgentRunReport, ConversionOptions, RunStatus
 
+PADDLE_WARNING_PATH = "D:\\Apps\\Document_Processing\\paddlepdf\\.venv\\Lib\\"
+PADDLE_WARNING_LOCATION = (
+    "site-packages\\paddle\\tensor\\creation.py:1152: UserWarning: "
+)
+PADDLE_TENSOR_WARNING_PREFIX = (
+    "To copy construct from a tensor, it is recommended to use "
+)
+PADDLE_TENSOR_WARNING_SUFFIX = "sourceTensor.clone().detach(), rather than "
+PADDLE_TENSOR_WARNING_CALL = "paddle.to_tensor(sourceTensor).\n"
+PADDLE_TENSOR_WARNING = (
+    PADDLE_WARNING_PATH
+    + PADDLE_WARNING_LOCATION
+    + PADDLE_TENSOR_WARNING_PREFIX
+    + PADDLE_TENSOR_WARNING_SUFFIX
+    + PADDLE_TENSOR_WARNING_CALL
+)
+
 
 class FakeVlResult:
     def save_to_json(self, save_path: str | Path) -> None:
@@ -30,6 +47,13 @@ class FakeWarningPipeline:
         return (FakeVlResult(),)
 
 
+class FakePaddleTensorWarningPipeline:
+    def predict(self, input_path: str) -> tuple[FakeVlResult, ...]:
+        Path(input_path).is_file()
+        sys.stderr.write(PADDLE_TENSOR_WARNING)
+        return (FakeVlResult(),)
+
+
 def create_benign_pipeline(options: ConversionOptions) -> FakeBenignPipeline:
     options.model_dump()
     return FakeBenignPipeline()
@@ -40,11 +64,24 @@ def create_warning_pipeline(options: ConversionOptions) -> FakeWarningPipeline:
     return FakeWarningPipeline()
 
 
+def create_paddle_tensor_warning_pipeline(
+    options: ConversionOptions,
+) -> FakePaddleTensorWarningPipeline:
+    options.model_dump()
+    return FakePaddleTensorWarningPipeline()
+
+
 def close_benign_pipeline(_pipeline: FakeBenignPipeline) -> None:
     return None
 
 
 def close_warning_pipeline(_pipeline: FakeWarningPipeline) -> None:
+    return None
+
+
+def close_paddle_tensor_warning_pipeline(
+    _pipeline: FakePaddleTensorWarningPipeline,
+) -> None:
     return None
 
 
@@ -130,10 +167,20 @@ def test_agent_json_rejects_unsupported_input_file(tmp_path: Path) -> None:
     assert ".png" in report.errors[0]
 
 
-def test_agent_json_when_vl_server_missing(tmp_path: Path) -> None:
+def test_agent_json_uses_native_backend_without_vl_server_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     runner = CliRunner()
     input_pdf = tmp_path / "paper.pdf"
     input_pdf.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        "paddlepdf.ocr_service.create_vl_pipeline",
+        create_benign_pipeline,
+    )
+    monkeypatch.setattr(
+        "paddlepdf.ocr_service.close_vl_pipeline",
+        close_benign_pipeline,
+    )
 
     result = runner.invoke(
         app,
@@ -141,9 +188,9 @@ def test_agent_json_when_vl_server_missing(tmp_path: Path) -> None:
     )
 
     report = AgentRunReport.model_validate_json(result.output)
-    assert result.exit_code == 1
-    assert report.status == RunStatus.FAILED
-    assert "PADDLEOCR_VL_SERVER_URL" in report.errors[0]
+    assert result.exit_code == 0
+    assert report.status == RunStatus.SUCCESS
+    assert report.errors == ()
 
 
 def test_agent_json_suppresses_benign_paddle_output(
@@ -209,6 +256,38 @@ def test_agent_json_fails_when_paddle_emits_warning_output(
     assert result.exit_code == 1
     assert report.status == RunStatus.FAILED
     assert "ResourceWarning" in report.errors[0]
+
+
+def test_agent_json_succeeds_when_paddle_emits_known_tensor_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner = CliRunner()
+    input_pdf = tmp_path / "paper.pdf"
+    input_pdf.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        "paddlepdf.ocr_service.create_vl_pipeline",
+        create_paddle_tensor_warning_pipeline,
+    )
+    monkeypatch.setattr(
+        "paddlepdf.ocr_service.close_vl_pipeline",
+        close_paddle_tensor_warning_pipeline,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "convert",
+            str(input_pdf),
+            "--out",
+            str(tmp_path / "out"),
+            "--agent",
+        ],
+    )
+
+    report = AgentRunReport.model_validate_json(result.output)
+    assert result.exit_code == 0
+    assert report.status == RunStatus.SUCCESS
+    assert report.errors == ()
 
 
 def test_cli_quality_profile_sets_quality_options(

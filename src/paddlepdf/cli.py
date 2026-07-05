@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Annotated, Final
 
 import typer
@@ -20,11 +19,12 @@ from paddlepdf.models import (
     VlBackend,
 )
 from paddlepdf.ocr_service import PaddleDocumentConverter
+from paddlepdf.user_paths import user_path, user_paths
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console(stderr=True)
 stdout = Console()
-DEFAULT_OUTPUT_DIR: Final = Path("output")
+DEFAULT_OUTPUT_DIR: Final = "output"
 
 
 @app.callback()
@@ -35,11 +35,11 @@ def root() -> None:
 @app.command()
 def convert(
     input_files: Annotated[
-        list[Path],
+        list[str],
         typer.Argument(help="One or more PDF files to convert."),
     ],
     out: Annotated[
-        Path,
+        str,
         typer.Option("--out", "-o", help="Output folder."),
     ] = DEFAULT_OUTPUT_DIR,
     output_format: Annotated[
@@ -63,7 +63,10 @@ def convert(
         typer.Option(
             "--vl-backend",
             case_sensitive=False,
-            help="Optimized PaddleOCR-VL server backend: vllm, sglang, or fastdeploy.",
+            help=(
+                "GenAI server backend when an optional VL server URL is used: "
+                "vllm, sglang, or fastdeploy."
+            ),
         ),
     ] = VlBackend.VLLM,
     vl_server_url: Annotated[
@@ -71,8 +74,8 @@ def convert(
         typer.Option(
             "--vl-server-url",
             help=(
-                "PaddleOCR-VL GenAI server /v1 endpoint. "
-                "Also reads PADDLEOCR_VL_SERVER_URL."
+                "Optional PaddleOCR-VL GenAI server /v1 endpoint override. "
+                "Omit for native OCR. Also reads PADDLEOCR_VL_SERVER_URL."
             ),
         ),
     ] = None,
@@ -106,8 +109,8 @@ def convert(
     ] = False,
 ) -> None:
     request = ConversionRequest(
-        input_files=tuple(path.resolve() for path in input_files),
-        output_dir=out.resolve(),
+        input_files=user_paths(tuple(input_files)),
+        output_dir=user_path(out),
         options=_conversion_options(
             output_format=output_format,
             profile=profile,

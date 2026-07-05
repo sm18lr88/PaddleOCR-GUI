@@ -51,10 +51,14 @@ Run:
   PaddleOCR-GUI.exe
 
 Agent/CLI use:
+  PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --agent
+
+Optional remote/server conversion:
   PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --vl-server-url http://127.0.0.1:8118/v1 --agent
 
-Before converting PDFs, start an optimized PaddleOCR-VL server and set:
-  PADDLEOCR_VL_SERVER_URL=http://127.0.0.1:8118/v1
+The GUI and CLI run native PaddleOCR-VL by default and request GPU first. Reports
+warn when GPU acceleration is not being used. Set PADDLEOCR_VL_SERVER_URL only
+when intentionally targeting a separate PaddleOCR-VL GenAI server.
 
 This bundle includes the Python runtime, PySide6/Qt files, PaddleOCR client code,
 PaddlePaddle GPU runtime files, and NVIDIA CUDA 12.9 DLL package files collected
