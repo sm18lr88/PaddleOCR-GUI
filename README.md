@@ -2,7 +2,7 @@
 
 Highly accurate conversion of PDFs to markdown. For use by humans, programs, or AI agents. 
 
-To set up, point your AI agent to this URL and it should find how to set it up for you.
+Easy setup is to tell your AI agent to read this link to set it up for you: https://raw.githubusercontent.com/sm18lr88/PaddleOCR-GUI/refs/heads/main/AGENTS.md
 
 ![PaddleOCR-GUI dark workflow](docs/images/paddleocr-gui.png)
 
