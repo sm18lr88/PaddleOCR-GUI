@@ -1,6 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Final, Protocol
 
-from mcp.server.fastmcp import FastMCP
+from anyio import Event, create_task_group, move_on_after
+from anyio.to_process import run_sync
+from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.session import ServerSession
+from mcp.types import CallToolRequest
 from pydantic import BaseModel, ConfigDict, Field
 
 from paddlepdf.models import (
@@ -14,6 +18,17 @@ from paddlepdf.models import (
 )
 from paddlepdf.ocr_service import PaddleDocumentConverter
 from paddlepdf.user_paths import user_path, user_paths
+
+MCP_PROGRESS_INTERVAL_SECONDS: Final = 20.0
+
+
+class ProgressReporter(Protocol):
+    async def report_progress(
+        self,
+        progress: float,
+        total: float | None = None,
+        message: str | None = None,
+    ) -> None: ...
 
 
 class McpConversionRequest(BaseModel):
@@ -73,7 +88,7 @@ mcp = FastMCP(
         "structured report as CLI --agent output."
     ),
 )
-def convert_documents(
+async def convert_documents(
     input_files: Annotated[
         tuple[str, ...],
         Field(
@@ -85,6 +100,7 @@ def convert_documents(
         ),
     ],
     output_dir: Annotated[str, Field(description="Folder that receives outputs.")],
+    ctx: Context[ServerSession, None, CallToolRequest],
     output_format: Annotated[
         OutputFormat,
         Field(description="Artifact format to write."),
@@ -127,22 +143,50 @@ def convert_documents(
         ),
     ] = False,
 ) -> McpAgentRunReport:
-    report = convert_mcp_request(
-        McpConversionRequest(
-            input_files=input_files,
-            output_dir=output_dir,
-            output_format=output_format,
-            profile=profile,
-            device=device,
-            vl_backend=vl_backend,
-            vl_server_url=vl_server_url,
-            orientation_correction=orientation_correction,
-            document_unwarping=document_unwarping,
-            preserve_layout=preserve_layout,
-            dry_run=dry_run,
-        )
+    request = McpConversionRequest(
+        input_files=input_files,
+        output_dir=output_dir,
+        output_format=output_format,
+        profile=profile,
+        device=device,
+        vl_backend=vl_backend,
+        vl_server_url=vl_server_url,
+        orientation_correction=orientation_correction,
+        document_unwarping=document_unwarping,
+        preserve_layout=preserve_layout,
+        dry_run=dry_run,
     )
-    return mcp_report(report)
+    completed = Event()
+    async with create_task_group() as task_group:
+        task_group.start_soon(
+            report_conversion_progress,
+            ctx,
+            completed,
+            MCP_PROGRESS_INTERVAL_SECONDS,
+        )
+        try:
+            return mcp_report(
+                await run_sync(convert_mcp_request, request, cancellable=True)
+            )
+        finally:
+            completed.set()
+    raise AssertionError
+
+
+async def report_conversion_progress(
+    reporter: ProgressReporter,
+    completed: Event,
+    interval_seconds: float,
+) -> None:
+    progress = 1.0
+    while not completed.is_set():
+        await reporter.report_progress(
+            progress,
+            message="Document conversion is still running.",
+        )
+        progress += 1.0
+        with move_on_after(interval_seconds):
+            await completed.wait()
 
 
 def convert_mcp_request(request: McpConversionRequest) -> AgentRunReport:

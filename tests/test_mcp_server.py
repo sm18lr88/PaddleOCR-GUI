@@ -5,7 +5,12 @@ import anyio
 from mcp.types import Tool
 from pydantic import BaseModel, ConfigDict, Field
 
-from paddlepdf.mcp_server import McpConversionRequest, convert_mcp_request, mcp
+from paddlepdf.mcp_server import (
+    McpConversionRequest,
+    convert_mcp_request,
+    mcp,
+    report_conversion_progress,
+)
 from paddlepdf.models import OutputFormat, RunStatus
 
 
@@ -64,6 +69,33 @@ def test_mcp_tool_schema_has_no_path_format() -> None:
     assert not _schema_contains_path_format(input_schema)
     assert output_schema is not None
     assert not _schema_contains_path_format(output_schema)
+
+
+def test_mcp_progress_heartbeat_repeats_until_conversion_finishes() -> None:
+    progress_values: list[float] = []
+
+    async def run_scenario() -> None:
+        completed = anyio.Event()
+
+        class RecordingProgress:
+            async def report_progress(
+                self,
+                progress: float,
+                total: float | None = None,
+                message: str | None = None,
+            ) -> None:
+                del total, message
+                progress_values.append(progress)
+                if len(progress_values) == 3:
+                    completed.set()
+
+        await report_conversion_progress(
+            RecordingProgress(), completed, interval_seconds=0
+        )
+
+    anyio.run(run_scenario)
+
+    assert progress_values == [1.0, 2.0, 3.0]
 
 
 def _convert_documents_tool() -> Tool:
