@@ -23,6 +23,15 @@ PADDLE_TENSOR_WARNING = (
     + PADDLE_TENSOR_WARNING_SUFFIX
     + PADDLE_TENSOR_WARNING_CALL
 )
+PADDLE_CCACHE_WARNING_MESSAGE = (
+    "UserWarning: No ccache found. Please be aware that recompiling all source "
+)
+PADDLE_CCACHE_WARNING_SOURCE = "  warnings.warn(warning_message)\n"
+PADDLE_CCACHE_WARNING = (
+    PADDLE_CCACHE_WARNING_MESSAGE
+    + "files may be required.\n"
+    + PADDLE_CCACHE_WARNING_SOURCE
+)
 
 
 class FakeVlResult:
@@ -34,23 +43,32 @@ class FakeVlResult:
 
 
 class FakeBenignPipeline:
-    def predict(self, input_path: str) -> tuple[FakeVlResult, ...]:
+    def predict_iter(
+        self, input_path: str, *, max_new_tokens: int
+    ) -> tuple[FakeVlResult, ...]:
         Path(input_path).is_file()
+        assert max_new_tokens > 0
         sys.stdout.write("Creating model: ('PaddleOCR-VL-1.6-0.9B', None, None)\n")
         return (FakeVlResult(),)
 
 
 class FakeWarningPipeline:
-    def predict(self, input_path: str) -> tuple[FakeVlResult, ...]:
+    def predict_iter(
+        self, input_path: str, *, max_new_tokens: int
+    ) -> tuple[FakeVlResult, ...]:
         Path(input_path).is_file()
+        assert max_new_tokens > 0
         sys.stdout.write("ResourceWarning: unclosed socket\n")
         return (FakeVlResult(),)
 
 
 class FakePaddleTensorWarningPipeline:
-    def predict(self, input_path: str) -> tuple[FakeVlResult, ...]:
+    def predict_iter(
+        self, input_path: str, *, max_new_tokens: int
+    ) -> tuple[FakeVlResult, ...]:
         Path(input_path).is_file()
-        sys.stderr.write(PADDLE_TENSOR_WARNING)
+        assert max_new_tokens > 0
+        sys.stderr.write(PADDLE_TENSOR_WARNING + PADDLE_CCACHE_WARNING)
         return (FakeVlResult(),)
 
 
@@ -258,7 +276,7 @@ def test_agent_json_fails_when_paddle_emits_warning_output(
     assert "ResourceWarning" in report.errors[0]
 
 
-def test_agent_json_succeeds_when_paddle_emits_known_tensor_warning(
+def test_agent_json_succeeds_when_paddle_emits_known_warnings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     runner = CliRunner()

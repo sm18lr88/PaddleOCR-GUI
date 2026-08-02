@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from paddlepdf.errors import (
     ConversionPathError,
+    PaddleCudaUnavailableError,
     PaddleDiagnosticOutputError,
     PaddleRuntimeUnavailableError,
     PaddleVlServerUnavailableError,
@@ -20,6 +22,7 @@ from paddlepdf.models import (
     PlannedDocument,
     ProgressCallback,
     ProgressEvent,
+    QualityProfile,
     RunStatus,
 )
 from paddlepdf.output_files import (
@@ -40,7 +43,17 @@ from paddlepdf.planning import (
 from paddlepdf.third_party_output import capture_third_party_output, diagnostic_lines
 
 if TYPE_CHECKING:
-    from paddleocr import PaddleOCRVL
+    from paddleocr import PaddleOCRVL, PaddleOCRVLResult
+
+
+@runtime_checkable
+class StreamingVlPipeline(Protocol):
+    def predict_iter(
+        self,
+        input_path: str,
+        *,
+        max_new_tokens: int,
+    ) -> Iterator[PaddleOCRVLResult]: ...
 
 
 class PaddleDocumentConverter:
@@ -102,6 +115,7 @@ class PaddleDocumentConverter:
             )
         except (
             ConversionPathError,
+            PaddleCudaUnavailableError,
             PaddleDiagnosticOutputError,
             PaddleRuntimeUnavailableError,
             PaddleVlServerUnavailableError,
@@ -124,14 +138,30 @@ class PaddleDocumentConverter:
         with capture_third_party_output() as captured:
             try:
                 pipeline = create_vl_pipeline(options)
+                if not isinstance(pipeline, StreamingVlPipeline):
+                    message = "PaddleOCRVL.predict_iter is unavailable"
+                    raise TypeError(message)
                 formats = artifact_formats(options.output_format)
-                for result in pipeline.predict(str(document.input_file)):
+                for result in pipeline.predict_iter(
+                    str(document.input_file),
+                    max_new_tokens=_generation_token_limit(options.profile),
+                ):
                     save_vl_result(result, document.output_dir, formats)
             finally:
                 if pipeline is not None:
                     close_vl_pipeline(pipeline)
         if lines := diagnostic_lines(captured):
             raise PaddleDiagnosticOutputError(lines=lines)
+
+
+def _generation_token_limit(profile: QualityProfile) -> int:
+    match profile:
+        case QualityProfile.FAST:
+            return 128
+        case QualityProfile.BALANCED:
+            return 256
+        case QualityProfile.QUALITY:
+            return 512
 
 
 def _validate_input_file(input_file: Path) -> None:

@@ -22,6 +22,8 @@ BENIGN_TENSOR_WARNING_SUFFIX: Final = (
 )
 BENIGN_DIAGNOSTIC_SNIPPETS: Final = (
     BENIGN_TENSOR_WARNING_PREFIX + BENIGN_TENSOR_WARNING_SUFFIX,
+    "No ccache found.",
+    "warnings.warn(warning_message)",
 )
 
 
