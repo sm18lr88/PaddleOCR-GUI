@@ -29,6 +29,16 @@ class PaddleRuntimeUnavailableError(Exception):
 
 
 @dataclass(frozen=True, slots=True)
+class PaddleCudaUnavailableError(Exception):
+    @override
+    def __str__(self) -> str:
+        return (
+            "CUDA was requested but PaddlePaddle cannot access a CUDA device. "
+            "Install the GPU runtime and verify the NVIDIA driver."
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class PaddleVlServerUnavailableError(Exception):
     url: str
     reason: str

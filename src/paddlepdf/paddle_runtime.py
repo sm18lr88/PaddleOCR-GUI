@@ -8,6 +8,7 @@ from urllib.parse import urlparse, urlunparse
 
 from paddlepdf.cuda_paths import add_windows_cuda_dll_directories
 from paddlepdf.errors import (
+    PaddleCudaUnavailableError,
     PaddleRuntimeUnavailableError,
     PaddleVlServerUnavailableError,
 )
@@ -38,13 +39,6 @@ def create_vl_pipeline(options: ConversionOptions) -> PaddleOCRVL:
             device=device,
             vl_rec_backend=backend,
             vl_rec_server_url=server_url,
-            use_doc_orientation_classify=options.orientation_correction,
-            use_doc_unwarping=options.document_unwarping,
-            use_layout_detection=options.preserve_layout,
-        )
-    if device is None:
-        return PaddleOCRVL(
-            pipeline_version=MODEL_PIPELINE_VERSION,
             use_doc_orientation_classify=options.orientation_correction,
             use_doc_unwarping=options.document_unwarping,
             use_layout_detection=options.preserve_layout,
@@ -118,15 +112,15 @@ def vl_health_url(server_url: str) -> str:
     return urlunparse((parsed.scheme, parsed.netloc, "/health", "", "", ""))
 
 
-def paddle_device(device: DeviceChoice) -> str | None:
+def paddle_device(device: DeviceChoice) -> str:
     match device:
         case DeviceChoice.AUTO:
-            return None
+            return "gpu:0" if paddle_gpu_available() else "cpu"
         case DeviceChoice.CPU:
             return "cpu"
         case DeviceChoice.GPU:
             if not paddle_gpu_available():
-                return "cpu"
+                raise PaddleCudaUnavailableError
             return "gpu:0"
 
 
@@ -145,11 +139,7 @@ def paddle_gpu_available() -> bool:
 def device_warnings(options: ConversionOptions) -> tuple[str, ...]:
     match options.device:
         case DeviceChoice.GPU:
-            if paddle_gpu_available():
-                return ()
-            return (
-                "GPU was requested but PaddlePaddle CUDA is unavailable; using CPU.",
-            )
+            return ()
         case DeviceChoice.CPU:
             return ("CPU device selected; GPU acceleration is not being used.",)
         case DeviceChoice.AUTO:

@@ -1,6 +1,6 @@
 import pytest
 
-from paddlepdf.errors import PaddleVlServerUnavailableError
+from paddlepdf.errors import PaddleCudaUnavailableError, PaddleVlServerUnavailableError
 from paddlepdf.models import ConversionOptions, DeviceChoice
 from paddlepdf.paddle_runtime import device_warnings, paddle_device, vl_health_url
 
@@ -17,16 +17,13 @@ def test_vl_health_url_maps_server_endpoint_to_health() -> None:
     assert vl_health_url("http://127.0.0.1:8118/v1") == "http://127.0.0.1:8118/health"
 
 
-def test_gpu_device_falls_back_to_cpu_with_warning_when_cuda_unavailable(
+def test_gpu_device_fails_when_cuda_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr("paddlepdf.paddle_runtime.paddle_gpu_available", lambda: False)
-    options = ConversionOptions(device=DeviceChoice.GPU)
 
-    assert paddle_device(DeviceChoice.GPU) == "cpu"
-    assert device_warnings(options) == (
-        "GPU was requested but PaddlePaddle CUDA is unavailable; using CPU.",
-    )
+    with pytest.raises(PaddleCudaUnavailableError):
+        paddle_device(DeviceChoice.GPU)
 
 
 def test_gpu_device_has_no_warning_when_cuda_available(
@@ -37,3 +34,19 @@ def test_gpu_device_has_no_warning_when_cuda_available(
 
     assert paddle_device(DeviceChoice.GPU) == "gpu:0"
     assert device_warnings(options) == ()
+
+
+def test_auto_device_selects_cuda_when_available(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("paddlepdf.paddle_runtime.paddle_gpu_available", lambda: True)
+
+    assert paddle_device(DeviceChoice.AUTO) == "gpu:0"
+
+
+def test_auto_device_selects_cpu_when_cuda_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("paddlepdf.paddle_runtime.paddle_gpu_available", lambda: False)
+
+    assert paddle_device(DeviceChoice.AUTO) == "cpu"
