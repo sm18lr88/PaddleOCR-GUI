@@ -1,6 +1,6 @@
 # PaddleOCR-GUI
 
-Highly accurate conversion of PDFs to markdown. For use by humans, programs, or AI agents. 
+Highly accurate conversion of PDFs to markdown, plus 68 local PDF editing tools (merge, split, rotate, watermark, sign, redact, encrypt, fill forms, convert to and from Office, and more). For use by humans, programs, or AI agents. The GUI is for conversion; the editing tools are available through the CLI and MCP server.
 
 Easy setup is to tell your AI agent to read this link to set it up for you: https://raw.githubusercontent.com/sm18lr88/PaddleOCR-GUI/refs/heads/main/AGENTS.md
 
