@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 
+from paddlepdf.cli_pdftools import tool_app
 from paddlepdf.models import (
     AgentRunReport,
     ConversionOptions,
@@ -23,6 +24,7 @@ from paddlepdf.ocr_service import PaddleDocumentConverter
 from paddlepdf.user_paths import user_path, user_paths
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(tool_app, name="tool")
 console = Console(stderr=True)
 DEFAULT_OUTPUT_DIR: Final = "output"
 

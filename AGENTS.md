@@ -77,3 +77,16 @@ The agent contract is:
 - Supported inputs are PDF and common image files: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.webp`.
 - Every distribution format, including any future Docker image, must expose this same CLI command shape and JSON contract.
 - Default conversion is native and GPU-first on Windows; pass `--vl-server-url` or set `PADDLEOCR_VL_SERVER_URL` only when intentionally targeting a separate PaddleOCR-VL GenAI server. `dry_run` does not contact PaddleOCR-VL.
+
+## PDF editing tools
+
+The MCP server also exposes the PDF editing tools ported from PaperPilot. These are the `pdf_*`, `office_*`, `excel_*`, `json_to_pdf`, `document_*`, and `*_workflows` tools. They run locally without CUDA. The CUDA-only rule applies to `convert_documents` only. The CLI equivalent is:
+
+```bash
+uv run paddlepdf tool list --agent
+uv run paddlepdf tool run <tool_name> --params-file params.json --agent
+```
+
+- Read `status`, `output_files`, `data`, `warnings`, and `errors` from the JSON report. Exit code `0` is success and `1` is failure.
+- Use `convert_documents` to read content. Use the editing tools to change PDFs. Plain-text extraction and OCR from PaperPilot were not ported because PaddleOCR-VL does them better.
+- Source layout: `src/paddlepdf/pdftools/<lane>/` holds the handlers. Each lane exports `TOOLS`. A handler's signature is its MCP and CLI schema. pypdfium2 is called only through `pdftools/pdfium.py`.

@@ -211,6 +211,23 @@ uv run paddlepdf convert input.pdf --out ./output --format all --dry-run --agent
 
 Exit code is `0` for success and nonzero for failed or partial runs.
 
+## PDF editing tools (absorbed from PaperPilot)
+
+The same MCP server and CLI also edit, organize, secure, sign, fill, and convert PDFs. These tools run locally on the CPU, never contact PaddleOCR-VL, and do not need CUDA. Use `convert_documents` to read a document. Use the editing tools to change one.
+
+Tool families: page organization (merge, split, burst, extract, delete, reorder, rotate, crop, scale, remove blank pages, split by outline, split scanned books, auto-rotate); layout (booklet, N-up, stitch, overlay/underlay, invert colors); marking (watermark, stamp, page numbers, header/footer, Bates numbers, timestamp, annotations); security (encrypt, decrypt, permissions, true redaction, sanitize, PII scan, hash); signatures (sign, validate, remove); structure (info, metadata, bookmarks, attachments, validate, classify, repair, linearize, flatten, PDF/A, compress, extract images, render, compare); forms (read, fill, create fields); conversions (HTML, Markdown, Excel/CSV, JSON, and images/CBZ to PDF; PDF to DOCX/XLSX/PPTX; Office to Markdown/text; Excel to JSON/CSV); and preset workflows.
+
+Every MCP tool and CLI run returns the same JSON report: `status` (`success` or `failed`), `tool`, `output_files`, `data`, `warnings`, `errors`, and `elapsed_seconds`.
+
+```bash
+uv run paddlepdf tool list --agent
+uv run paddlepdf tool run pdf_merge --params-file merge.json --agent
+```
+
+`tool list --agent` prints each tool's name, description, and JSON input schema. `tool run` takes the arguments as a JSON object through `--params` or `--params-file`. Use `--params-file` from PowerShell to avoid quoting problems. Exit code is `0` for success and `1` for a failed tool, an unknown tool, or invalid parameters.
+
+Parameter conventions: `input_file`/`input_files`, `output_file`/`output_dir`, `pages` as 1-based ranges such as `1,3-5,last`, and `password` for encrypted inputs. Output paths must differ from input paths.
+
 ## Package a zip
 
 For a Windows executable bundle similar to apps that ship their DLLs beside the `.exe`, run:

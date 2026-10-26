@@ -7,6 +7,7 @@ from mcp.server.session import ServerSession
 from mcp.types import CallToolRequest
 from pydantic import BaseModel, ConfigDict, Field
 
+from paddlepdf.mcp_pdftools import register_pdf_tools
 from paddlepdf.mcp_subprocess import (
     McpConversionRequest,
     convert_mcp_request_in_subprocess,
@@ -63,11 +64,15 @@ mcp = FastMCP(
     "paddlepdf",
     log_level="ERROR",
     instructions=(
-        "Convert PDFs and common document images with CUDA-only PaddleOCR-VL. "
-        "The server rejects CPU inference and fails if CUDA is unavailable. "
-        "Use dry_run=true to validate paths without running OCR."
+        "Read PDFs and document images with convert_documents (CUDA-only "
+        "PaddleOCR-VL; rejects CPU inference; dry_run=true validates paths "
+        "without OCR). Edit, organize, secure, sign, fill, and convert PDFs with "
+        "the pdf_*, office_*, excel_*, json_to_pdf, document_* and workflow tools; "
+        "they run locally without a GPU and return status, output_files, data, "
+        "warnings, and errors."
     ),
 )
+register_pdf_tools(mcp)
 
 
 @mcp.tool(
