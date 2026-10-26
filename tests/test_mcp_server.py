@@ -2,14 +2,19 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import anyio
+import pytest
 from mcp.types import Tool
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from paddlepdf.mcp_server import (
-    McpConversionRequest,
     convert_mcp_request,
     mcp,
     report_conversion_progress,
+)
+from paddlepdf.mcp_subprocess import (
+    McpConversionRequest,
+    convert_mcp_request_in_subprocess,
+    mcp_conversion_command,
 )
 from paddlepdf.models import OutputFormat, RunStatus
 
@@ -38,6 +43,46 @@ def test_mcp_convert_documents_dry_run_accepts_pdf_and_image(
     assert report.errors == ()
 
 
+def test_mcp_conversion_subprocess_returns_report(tmp_path: Path) -> None:
+    input_pdf = tmp_path / "paper.pdf"
+    input_pdf.write_bytes(b"%PDF-1.4\n")
+
+    report = convert_mcp_request_in_subprocess(
+        McpConversionRequest(
+            input_files=(str(input_pdf),),
+            output_dir=str(tmp_path / "out"),
+            dry_run=True,
+        )
+    )
+
+    assert report.status == RunStatus.SUCCESS
+
+
+def test_mcp_request_rejects_device_override() -> None:
+    with pytest.raises(ValidationError):
+        McpConversionRequest.model_validate(
+            {
+                "input_files": ("paper.pdf",),
+                "output_dir": "out",
+                "device": "cpu",
+            }
+        )
+
+
+def test_mcp_subprocess_command_forces_gpu() -> None:
+    command = mcp_conversion_command(
+        McpConversionRequest(
+            input_files=("paper.pdf",),
+            output_dir="out",
+        )
+    )
+
+    device_index = command.index("--device")
+    assert command[device_index + 1] == "gpu"
+    assert "cpu" not in command
+    assert "auto" not in command
+
+
 type JsonValue = JsonScalar | JsonObject | JsonArray
 type JsonScalar = str | int | float | bool | None
 type JsonObject = Mapping[str, JsonValue]
@@ -59,6 +104,7 @@ def test_mcp_tool_schema_uses_flat_arguments() -> None:
     assert _schema_required_fields(input_schema) == ("input_files", "output_dir")
     assert "input_files" in _schema_property_names(input_schema)
     assert "output_dir" in _schema_property_names(input_schema)
+    assert "device" not in _schema_property_names(input_schema)
 
 
 def test_mcp_tool_schema_has_no_path_format() -> None:

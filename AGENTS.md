@@ -5,8 +5,15 @@ Agents must use the CLI surface, not the GUI, for automated document processing.
 Preferred local MCP server:
 
 ```bash
-uv --directory D:\Apps\Document_Processing\paddlepdf run paddlepdf-mcp
+uv --directory D:\Apps\Document_Processing\paddlepdf run --no-sync paddlepdf-mcp
 ```
+
+Run `uv sync --dev --extra ocr --extra gpu` before starting MCP. The MCP server
+is CUDA-only: it does not expose a device selector, always launches conversion
+with `--device gpu`, and fails closed when PaddlePaddle cannot access CUDA. The
+CPU extra is for CLI/GUI use only and must not be used for MCP. `--no-sync` keeps
+repeated MCP launches from trying to rewrite the Windows console-script
+executable while another MCP client still has it open.
 
 ## Fresh clone setup
 
@@ -37,7 +44,10 @@ First real conversion downloads PaddleOCR/PaddleOCR-VL weights into the user's
 normal model cache. Default conversion is native and GPU-first on Windows; a
 report warning means PaddlePaddle CUDA was unavailable or CPU was selected.
 
-Use the `convert_documents` MCP tool with top-level `input_files`, `output_dir`, `output_format`, optional OCR/server settings, and `dry_run` when validation should not contact PaddleOCR-VL.
+Use the `convert_documents` MCP tool with top-level `input_files`, `output_dir`,
+`output_format`, optional OCR/server settings, and `dry_run` when validation
+should not contact PaddleOCR-VL. The MCP tool intentionally has no `device`
+argument and must never offer CPU or automatic device selection.
 
 Windows bundle:
 

@@ -1,12 +1,16 @@
 from typing import Annotated, Final, Protocol
 
 from anyio import Event, create_task_group, move_on_after
-from anyio.to_process import run_sync
+from anyio.to_thread import run_sync
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.session import ServerSession
 from mcp.types import CallToolRequest
 from pydantic import BaseModel, ConfigDict, Field
 
+from paddlepdf.mcp_subprocess import (
+    McpConversionRequest,
+    convert_mcp_request_in_subprocess,
+)
 from paddlepdf.models import (
     AgentRunReport,
     ConversionOptions,
@@ -29,22 +33,6 @@ class ProgressReporter(Protocol):
         total: float | None = None,
         message: str | None = None,
     ) -> None: ...
-
-
-class McpConversionRequest(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    input_files: tuple[str, ...] = Field(min_length=1)
-    output_dir: str
-    output_format: OutputFormat = OutputFormat.MARKDOWN
-    profile: QualityProfile = QualityProfile.BALANCED
-    device: DeviceChoice = DeviceChoice.GPU
-    vl_backend: VlBackend = VlBackend.VLLM
-    vl_server_url: str | None = None
-    orientation_correction: bool = False
-    document_unwarping: bool = False
-    preserve_layout: bool = True
-    dry_run: bool = False
 
 
 class McpDocumentReport(BaseModel):
@@ -75,7 +63,8 @@ mcp = FastMCP(
     "paddlepdf",
     log_level="ERROR",
     instructions=(
-        "Convert PDFs and common document images with PaddleOCR-VL. "
+        "Convert PDFs and common document images with CUDA-only PaddleOCR-VL. "
+        "The server rejects CPU inference and fails if CUDA is unavailable. "
         "Use dry_run=true to validate paths without running OCR."
     ),
 )
@@ -84,7 +73,7 @@ mcp = FastMCP(
 @mcp.tool(
     name="convert_documents",
     description=(
-        "Convert PDF/image files with PaddleOCR-VL and return the same "
+        "Convert PDF/image files with CUDA-only PaddleOCR-VL and return the same "
         "structured report as CLI --agent output."
     ),
 )
@@ -109,10 +98,6 @@ async def convert_documents(
         QualityProfile,
         Field(description="OCR quality profile."),
     ] = QualityProfile.BALANCED,
-    device: Annotated[
-        DeviceChoice,
-        Field(description="Paddle device selector."),
-    ] = DeviceChoice.GPU,
     vl_backend: Annotated[
         VlBackend,
         Field(description="GenAI backend used only with an optional VL server URL."),
@@ -137,8 +122,7 @@ async def convert_documents(
         bool,
         Field(
             description=(
-                "Validate inputs and planned outputs without contacting "
-                "PaddleOCR-VL."
+                "Validate inputs and planned outputs without contacting PaddleOCR-VL."
             ),
         ),
     ] = False,
@@ -148,7 +132,6 @@ async def convert_documents(
         output_dir=output_dir,
         output_format=output_format,
         profile=profile,
-        device=device,
         vl_backend=vl_backend,
         vl_server_url=vl_server_url,
         orientation_correction=orientation_correction,
@@ -166,7 +149,7 @@ async def convert_documents(
         )
         try:
             return mcp_report(
-                await run_sync(convert_mcp_request, request, cancellable=True)
+                await run_sync(convert_mcp_request_in_subprocess, request)
             )
         finally:
             completed.set()
@@ -196,7 +179,7 @@ def convert_mcp_request(request: McpConversionRequest) -> AgentRunReport:
         options=ConversionOptions(
             output_format=request.output_format,
             profile=request.profile,
-            device=request.device,
+            device=DeviceChoice.GPU,
             vl_backend=request.vl_backend,
             vl_server_url=request.vl_server_url,
             orientation_correction=request.orientation_correction,

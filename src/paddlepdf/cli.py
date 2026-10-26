@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import Annotated, Final
 
 import typer
@@ -23,7 +24,6 @@ from paddlepdf.user_paths import user_path, user_paths
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console(stderr=True)
-stdout = Console()
 DEFAULT_OUTPUT_DIR: Final = "output"
 
 
@@ -220,7 +220,9 @@ def _convert_request(request: ConversionRequest, agent: bool) -> AgentRunReport:
 
 def _write_report(report: AgentRunReport, agent: bool) -> None:
     if agent:
-        stdout.print(report.model_dump_json(indent=2))
+        sys.stdout.write(report.model_dump_json(indent=2))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
         return
     console.print(f"Status: [bold]{report.status.value}[/bold]")
     console.print(f"Output files: {len(report.output_files)}")

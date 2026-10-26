@@ -155,8 +155,17 @@ uv sync --dev --extra ocr --extra gpu
 MCP server command:
 
 ```bash
-uv run paddlepdf-mcp
+uv run --no-sync paddlepdf-mcp
 ```
+
+Run setup first, then use `--no-sync` for MCP clients. On Windows this avoids
+failed restarts when another MCP process still has the `paddlepdf-mcp.exe`
+launcher open.
+
+The MCP server is CUDA-only. It does not expose a device selector, always starts
+the conversion subprocess with `--device gpu`, and returns a failed report if
+PaddlePaddle cannot access a CUDA device. CPU and automatic device selection are
+available only through the separate CLI/GUI surfaces.
 
 The MCP server exposes `convert_documents` with these top-level arguments:
 

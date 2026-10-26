@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from paddlepdf.mcp_server import McpConversionRequest, convert_mcp_request
+from paddlepdf.mcp_server import convert_mcp_request
+from paddlepdf.mcp_subprocess import McpConversionRequest
 from paddlepdf.models import RunStatus
 
 
