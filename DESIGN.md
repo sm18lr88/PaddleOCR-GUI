@@ -2,56 +2,57 @@
 
 ## 1. Direction
 
-Native Windows desktop utility with a Linear-inspired dark surface: near-black canvas, cool-gray panels, small precise controls, and one restrained indigo accent for the primary action and progress state.
+Cross-platform desktop utility with a compact, OpenAI_TTS_GUI-inspired control layout: slate canvas, flat ordered rows, no stacked cards, and one restrained steel-blue accent for the primary action and progress state.
 
 ## 2. Color tokens
 
-- `bg.canvas`: `#08090a`
-- `bg.panel`: `#0f1011`
-- `bg.surface`: `#15171a`
-- `bg.surface-hover`: `#1d2025`
-- `text.primary`: `#f7f8f8`
-- `text.secondary`: `#d0d6e0`
-- `text.muted`: `#8a8f98`
-- `text.disabled`: `#62666d`
-- `border.subtle`: `rgba(255, 255, 255, 0.06)`
-- `border.standard`: `rgba(255, 255, 255, 0.10)`
-- `accent.primary`: `#5e6ad2`
-- `accent.hover`: `#7170ff`
-- `accent.pressed`: `#4d58b8`
+- `bg.canvas`: `#202327`
+- `bg.field`: `#282d33`
+- `bg.button`: `#30363e`
+- `bg.button-hover`: `#39404a`
+- `text.primary`: `#eceff3`
+- `text.secondary`: `#b3bac5`
+- `text.disabled`: `#7d8794`
+- `border.panel`: `#353c45`
+- `border.control`: `#444c57`
+- `accent.primary`: `#7890ae`
+- `accent.hover`: `#8ba1bc`
+- `accent.pressed`: `#5f7899`
 
 ## 3. Typography
 
-- Primary font: Windows system UI stack, 10 pt base.
-- Window title: 20 pt, 590 weight, tight tracking where supported.
-- Section labels: 10 pt, 590 weight, secondary text.
+- Primary font: system UI stack with Segoe UI Variable Text first on Windows, 10 pt base.
+- Window title: 17 pt, 700 weight.
+- Section labels: 9 pt, 700 weight, secondary text.
 - Body and controls: 10 pt, 400-510 weight.
 - Logs and paths: monospace system font where Qt chooses one for plain text.
 
 ## 4. Spacing and shape
 
 - Base spacing: 8 px.
-- Root margin: 18 px.
-- Panel padding: 16 px.
+- Root margin: 12-14 px.
+- Row spacing: 6-8 px.
 - Control radius: 6 px.
-- Panel radius: 10 px.
-- Inputs and buttons use 28-32 px height; no oversized colorful controls.
+- Inputs and buttons use 26-30 px height; no oversized colorful controls.
+- Dividers may separate workflow areas; avoid card boxes unless a real modal/popup needs containment.
 
 ## 5. Components
 
-- `Header`: title plus muted subtitle, no decorative imagery.
-- `Panel`: subtle translucent surface with thin white border.
-- `Input`: dark recessed field, subtle border, indigo focus ring.
-- `Primary button`: solid indigo, compact, used only for conversion.
-- `Secondary button`: dark transparent surface with subtle border.
-- `Progress bar`: low-height track with indigo chunk.
+- `Header`: title plus inline language switch, no subtitle or marketing copy.
+- `Document queue`: compact list with add/select button in the same row as the label.
+- `Output row`: label, path field, and browse button in one line.
+- `Settings grid`: output format, profile, device, and OCR checkboxes in dense ordered rows.
+- `Input`: slate recessed field, subtle border, steel-blue focus ring.
+- `Primary button`: solid steel-blue, compact, used only for conversion.
+- `Secondary button`: slate surface with subtle border.
+- `Progress bar`: low-height track with steel-blue chunk.
 - `Log`: dark recessed monospace output with muted text.
 
 ## 6. Interaction states
 
 - Hover increases surface luminance by one step.
 - Pressed state darkens or lowers luminance.
-- Focus uses an indigo border and subtle glow, never a bright default outline.
+- Focus uses a steel-blue border and subtle glow, never a bright default outline.
 - Disabled state lowers contrast and preserves layout.
 
 ## 7. Accessibility

@@ -98,7 +98,6 @@ unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
 "src/paddlepdf/cli.py" = ["PLR0913"]
-"src/paddlepdf/gui.py" = ["PLR0915"]
 "src/paddlepdf/mcp_server.py" = ["PLR0913"]
 "src/paddlepdf/ocr_service.py" = ["BLE001", "PLC0415"]
 "src/paddlepdf/paddle_runtime.py" = ["PLC0415"]
