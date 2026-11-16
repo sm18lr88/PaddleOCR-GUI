@@ -1,8 +1,8 @@
 # PaddleOCR-GUI
 
-Highly accurate conversion of PDFs to markdown, plus 68 local PDF editing tools (merge, split, rotate, watermark, sign, redact, encrypt, fill forms, convert to and from Office, and more). For use by humans, programs, or AI agents. The GUI is for conversion; the editing tools are available through the CLI and MCP server.
+Highly accurate conversion of PDFs to markdown, plus 68 local PDF editing tools (merge, split, rotate, watermark, sign, redact, encrypt, fill forms, convert to and from Office, and more). Humans, programs, and AI agents can all use it. The GUI is for conversion; the editing tools are available through the CLI and MCP server.
 
-Easy setup is to tell your AI agent to read this link to set it up for you: https://raw.githubusercontent.com/sm18lr88/PaddleOCR-GUI/refs/heads/main/AGENTS.md
+The easy way to set it up is to tell your AI agent to read this link and do the setup for you: https://raw.githubusercontent.com/sm18lr88/PaddleOCR-GUI/refs/heads/main/AGENTS.md
 
 ![PaddleOCR-GUI dark workflow](docs/images/paddleocr-gui.png)
 
@@ -26,7 +26,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --dev --extra ocr --extra gpu
 ```
 
-This installs the client app, PaddleOCR document parser, and CUDA 12.9 PaddlePaddle GPU runtime by default. The project uses UV's `[tool.uv.sources]` configuration so normal Python packages resolve from PyPI and only `paddlepaddle-gpu` resolves from PaddlePaddle's official CUDA 12.9 wheel index.
+By default this installs the client app, the PaddleOCR document parser, and the CUDA 12.9 PaddlePaddle GPU runtime. The project uses UV's `[tool.uv.sources]` configuration. Normal Python packages resolve from PyPI, and only `paddlepaddle-gpu` resolves from PaddlePaddle's official CUDA 12.9 wheel index.
 
 Windows PowerShell users can run:
 
@@ -49,7 +49,7 @@ The default device is `gpu`. When PaddlePaddle CUDA is available, the app passes
 
 Use an external PaddleOCR-VL GenAI server only when you intentionally want a separate local or remote server. For CLI/MCP, pass `--vl-server-url` or `vl_server_url`, or set `PADDLEOCR_VL_SERVER_URL`.
 
-Official PaddleOCR server commands use one of these backends:
+The official PaddleOCR server commands use one of these backends:
 
 ```bash
 paddleocr genai_server --model_name PaddleOCR-VL-1.6-0.9B --backend vllm --port 8118
@@ -95,7 +95,7 @@ Do not install CPU and GPU PaddlePaddle packages together. UV marks these extras
 
 ## Other GPU versions
 
-CUDA 12.9 is the default pinned GPU path. CUDA 12.6 from the PaddleOCR-VL model card can be installed manually if your environment requires it:
+CUDA 12.9 is the default pinned GPU path. If your environment requires CUDA 12.6 from the PaddleOCR-VL model card, you can install it manually:
 
 ```bash
 uv pip uninstall paddlepaddle-gpu
@@ -122,7 +122,14 @@ macOS/Linux:
 ./run_gui.sh
 ```
 
-The GUI lets users select PDFs or images, choose an output folder, choose Markdown/JSON/text/all, set the device and OCR knobs, watch progress, and open the output folder when conversion completes. Conversion runs in a worker thread so the window stays responsive. The interface auto-detects the OS language and can be switched manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
+In the GUI you can:
+
+- select PDFs or images and choose an output folder;
+- choose Markdown, JSON, text, or all;
+- set the device and OCR knobs;
+- watch progress, and open the output folder when conversion completes.
+
+Conversion runs in a worker thread, so the window stays responsive. The interface auto-detects the OS language. You can switch it manually between English, Spanish, Korean, Chinese, Japanese, Hebrew, and Arabic.
 
 ## Run the CLI
 
@@ -142,7 +149,7 @@ uv run paddlepdf convert paper.pdf --out ./output --format markdown --vl-server-
 
 Supported inputs: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, and `.webp`.
 
-Outputs are written into predictable per-document folders under the selected output folder. PDF names are sanitized and duplicate stems become `name`, `name-2`, and so on.
+Outputs go into predictable per-document folders under the selected output folder. PDF names are sanitized, and duplicate stems become `name`, `name-2`, and so on.
 
 ## Agent usage
 
@@ -189,7 +196,7 @@ Windows executable bundle command:
 .\PaddleOCR-GUI-CLI.exe convert input.pdf --out output --format markdown --agent
 ```
 
-Any distribution of this project, including future Docker images, must keep a CLI entry point with the same `convert ... --agent` JSON contract so coding agents can process PDFs and images without GUI automation.
+Any distribution of this project, including future Docker images, must keep a CLI entry point with the same `convert ... --agent` JSON contract, so coding agents can process PDFs and images without GUI automation.
 
 Dry-run command that does not load PaddleOCR:
 
@@ -207,7 +214,7 @@ uv run paddlepdf convert input.pdf --out ./output --format all --dry-run --agent
 - `elapsed_seconds`
 - per-document status details
 
-`output_files` includes requested Markdown/JSON/text artifacts and any generated sidecar assets such as extracted figures or page images. Agents should keep those paths with the Markdown because PaddleOCR-VL may reference sidecar image files from the generated content.
+`output_files` includes the requested Markdown/JSON/text artifacts and any generated sidecar assets, such as extracted figures or page images. PaddleOCR-VL may reference sidecar image files from the generated content, so agents should keep those paths with the Markdown.
 
 Exit code is `0` for success and nonzero for failed or partial runs.
 
@@ -215,7 +222,17 @@ Exit code is `0` for success and nonzero for failed or partial runs.
 
 The same MCP server and CLI also edit, organize, secure, sign, fill, and convert PDFs. These tools run locally on the CPU, never contact PaddleOCR-VL, and do not need CUDA. Use `convert_documents` to read a document. Use the editing tools to change one.
 
-Tool families: page organization (merge, split, burst, extract, delete, reorder, rotate, crop, scale, remove blank pages, split by outline, split scanned books, auto-rotate); layout (booklet, N-up, stitch, overlay/underlay, invert colors); marking (watermark, stamp, page numbers, header/footer, Bates numbers, timestamp, annotations); security (encrypt, decrypt, permissions, true redaction, sanitize, PII scan, hash); signatures (sign, validate, remove); structure (info, metadata, bookmarks, attachments, validate, classify, repair, linearize, flatten, PDF/A, compress, extract images, render, compare); forms (read, fill, create fields); conversions (HTML, Markdown, Excel/CSV, JSON, and images/CBZ to PDF; PDF to DOCX/XLSX/PPTX; Office to Markdown/text; Excel to JSON/CSV); and preset workflows.
+Tool families:
+
+- page organization: merge, split, burst, extract, delete, reorder, rotate, crop, scale, remove blank pages, split by outline, split scanned books, auto-rotate;
+- layout: booklet, N-up, stitch, overlay/underlay, invert colors;
+- marking: watermark, stamp, page numbers, header/footer, Bates numbers, timestamp, annotations;
+- security: encrypt, decrypt, permissions, true redaction, sanitize, PII scan, hash;
+- signatures: sign, validate, remove;
+- structure: info, metadata, bookmarks, attachments, validate, classify, repair, linearize, flatten, PDF/A, compress, extract images, render, compare;
+- forms: read, fill, create fields;
+- conversions: HTML, Markdown, Excel/CSV, JSON, and images/CBZ to PDF; PDF to DOCX/XLSX/PPTX; Office to Markdown/text; Excel to JSON/CSV;
+- preset workflows.
 
 Every MCP tool and CLI run returns the same JSON report: `status` (`success` or `failed`), `tool`, `output_files`, `data`, `warnings`, `errors`, and `elapsed_seconds`.
 
@@ -230,15 +247,15 @@ Parameter conventions: `input_file`/`input_files`, `output_file`/`output_dir`, `
 
 ## Package a zip
 
-For a Windows executable bundle similar to apps that ship their DLLs beside the `.exe`, run:
+For a Windows executable bundle that ships its DLLs beside the `.exe`, run:
 
 ```powershell
 .\package_windows.ps1
 ```
 
-This builds `dist\PaddleOCR-GUI\PaddleOCR-GUI.exe` and `dist\PaddleOCR-GUI\PaddleOCR-GUI-CLI.exe` with PyInstaller's one-folder layout and writes `dist\PaddleOCR-GUI-windows-x64.zip`. The folder is intentionally distributed as a directory-style app bundle so the executables can load the collected Qt, PaddlePaddle, CUDA, and NVIDIA DLL/resource files next to them.
+This builds `dist\PaddleOCR-GUI\PaddleOCR-GUI.exe` and `dist\PaddleOCR-GUI\PaddleOCR-GUI-CLI.exe` with PyInstaller's one-folder layout, and writes `dist\PaddleOCR-GUI-windows-x64.zip`. The folder is deliberately distributed as a directory-style app bundle, so the executables can load the collected Qt, PaddlePaddle, CUDA, and NVIDIA DLL/resource files next to them.
 
-The GUI executable runs native PaddleOCR-VL by default. The CLI executable remains the agent surface; pass `--vl-server-url` or set `PADDLEOCR_VL_SERVER_URL` only when intentionally using a separate PaddleOCR-VL GenAI server.
+The GUI executable runs native PaddleOCR-VL by default. The CLI executable remains the agent surface. Pass `--vl-server-url` or set `PADDLEOCR_VL_SERVER_URL` only when you intentionally use a separate PaddleOCR-VL GenAI server.
 
 Source-only zip commands:
 
@@ -258,11 +275,11 @@ Do not include `.venv`, model caches, or downloaded PaddleOCR weights in the zip
 
 ## Troubleshooting
 
-- First conversion is slow because PaddleOCR downloads model files and initializes PaddleOCR-VL.
-- PaddleOCR downloads official models from Hugging Face by default. PaddleOCR-GUI disables PaddleOCR's pre-download hoster health check to avoid false negatives; set `PADDLE_PDX_MODEL_SOURCE=BOS` only if Hugging Face is inaccessible on your network.
-- If `paddleocr is not installed`, run `uv sync --dev --extra ocr --extra gpu`.
-- If PaddlePaddle import fails, install exactly one runtime package: CPU `paddlepaddle` or GPU `paddlepaddle-gpu`.
-- If the report warns that GPU is unavailable, confirm `paddlepaddle-gpu` is installed, the NVIDIA driver is working, and `paddle.device.cuda.device_count()` is greater than zero.
-- If `PaddleOCR-VL server unavailable` appears, you explicitly configured `--vl-server-url` or `PADDLEOCR_VL_SERVER_URL`; confirm the GenAI server is healthy or remove the override to use native OCR.
-- If GPU runs out of memory, use a smaller workload, switch to a larger GPU machine, or intentionally target a remote GenAI server.
+- The first conversion is slow because PaddleOCR downloads model files and initializes PaddleOCR-VL.
+- PaddleOCR downloads official models from Hugging Face by default. PaddleOCR-GUI disables PaddleOCR's pre-download hoster health check to avoid false negatives. Set `PADDLE_PDX_MODEL_SOURCE=BOS` only if Hugging Face is inaccessible on your network.
+- If `paddleocr is not installed` appears, run `uv sync --dev --extra ocr --extra gpu`.
+- If the PaddlePaddle import fails, install exactly one runtime package: CPU `paddlepaddle` or GPU `paddlepaddle-gpu`.
+- If the report warns that GPU is unavailable, confirm that `paddlepaddle-gpu` is installed, the NVIDIA driver is working, and `paddle.device.cuda.device_count()` is greater than zero.
+- If `PaddleOCR-VL server unavailable` appears, you explicitly configured `--vl-server-url` or `PADDLEOCR_VL_SERVER_URL`. Confirm that the GenAI server is healthy, or remove the override to use native OCR.
+- If the GPU runs out of memory, use a smaller workload, switch to a larger GPU machine, or intentionally target a remote GenAI server.
 - If macOS PaddlePaddle wheels are unavailable for your machine, use the official PaddleOCR-VL Docker or hardware-specific guide.
